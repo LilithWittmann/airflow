@@ -5,6 +5,7 @@
     href="{{ url_for("static", filename="main.css") }}">
 <link rel="stylesheet" type="text/css"
     href="{{ url_for("static", filename="dataTables.bootstrap.css") }}">
+<link href="{{ url_for("static", filename="nv.d3.min.css") }}" rel="stylesheet">
 <style>
   pre {
     margin: 0px;
@@ -54,10 +55,10 @@ body {
 {{ super() }}
 {% if embed %}
   <div id="chart_body">
-      <img src="{{ url_for('static', filename='loading.gif') }}" width="50px">
+      <img data-element="spinner" src="{{ url_for('static', filename='loading.gif') }}" width="50px">
   </div>
 {% else %}
-  <div id="container">
+  <div id="container" data-element="sql-charts-view" data-base-url="{{ url_for('airflow.chart_data') }}" data-display-data-table="{% if chart.chart_type != "datatable" %}true{% else %}false{% endif %}" data-display-chart="{% if chart.chart_type != "datatable" %}true{% else %}false{% endif %}" data-chart-height="{{ chart.height }}">
     <h2>
         <span id="label">{{ label }}</span>
         <a href="/admin/chart/edit/?id={{ chart.id }}" >
@@ -66,7 +67,7 @@ body {
     </h2>
     <div id="error" style="display: none;" class="alert alert-danger" role="alert">
         <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
-        <span id="error_msg">Oops.</span>
+        <span data-element="message">Oops.</span>
     </div>
     {% if chart.show_sql %}
       <div class="panel panel-default">
@@ -96,7 +97,7 @@ body {
         <div id="chart_panel" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingTwo">
           <div class="panel-body">
             <div id="chart_body">
-                <img src="{{ url_for('static', filename='loading.gif') }}" width="50px">
+                <img data-element="spinner" src="{{ url_for('static', filename='loading.gif') }}" width="50px">
             </div>
           </div>
         </div>
@@ -113,8 +114,8 @@ body {
         </div>
         <div id="datatable_panel" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="headingTwo">
           <div class="panel-body" id="datatable_panel_body">
-              <table id="datatable" class="dataframe table table-bordered table-striped no-wrap"></table>
-                <img id="loading" src="{{ url_for('static', filename='loading.gif') }}" width="50px">
+              <table data-element="datatable" id="datatable" class="dataframe table table-bordered table-striped no-wrap"></table>
+                <img data-element="spinner" id="loading" src="{{ url_for('static', filename='loading.gif') }}" width="50px">
           </div>
         </div>
       </div>
@@ -126,59 +127,7 @@ body {
     {{ super() }}
     <script src="{{ url_for('static', filename='jquery.dataTables.min.js') }}"></script>
     <script src="{{ url_for('static', filename='dataTables.bootstrap.js') }}"></script>
-    <script src="{{ url_for('static', filename='highcharts.js') }}"></script>
-    <script src="{{ url_for('static', filename='highcharts-more.js') }}">
-    </script>
-    <script src="{{ url_for('static', filename='heatmap.js') }}"></script>
-    <script src="{{ url_for('static', filename='heatmap-canvas.js') }}"></script>
-    <script>
-    function error(msg){
-      $('#error_msg').html(msg);
-      $('#error').show();
-      $('#loading').hide();
-      $('#chart_section').hide(1000);
-      $('#datatable_section').hide(1000);
-    }
-    function warn(msg){
-      $('#error_msg').html(msg);
-      $('#error').show();
-    }
-    $( document ).ready(function() {
-      Highcharts.setOptions({
-        colors: [
-            "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400", 
-            "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
-        ],
-      });
-      url = "{{ url_for('airflow.chart_data') }}" + location.search;
-      $.getJSON(url, function(payload) {
-        $('#loading').hide();
-        $("#sql_panel_body").html(payload.sql_html);
-        $("#label").html(payload.label);
-        if (payload.state == "SUCCESS") {
-          {% if chart.chart_type != "datatable" %}
-            $('#chart_body').css('width', '100%');
-            $('#chart_body').css('height', '{{ chart.height }}');
-            $('#chart_body').highcharts(payload.hc);
-          {% endif %}
-          {% if chart.show_datatable or chart.chart_type == "datatable" %}
-              $('#datatable').dataTable( {
-                "data": payload.data.data,
-                "columns": payload.data.columns,
-                "scrollX": true,
-                "iDisplayLength": 100,
-              });   
-          {% endif %}
-        }  
-        else {
-          error(payload.error);
-        }
-        if ('warning' in payload)
-            warn(payload.warning);
-      }).fail(function(jqxhr, textStatus, err) {
-        error( textStatus + ': ' + err );
-      });
-    });
-    </script>
-
+    <script src="{{ url_for('static', filename='d3.v3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='nv.d3.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='sql_charts.js') }}"></script>
 {% endblock %}

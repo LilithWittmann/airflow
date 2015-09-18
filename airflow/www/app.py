@@ -462,80 +462,6 @@ class Airflow(BaseView):
                     response=df.to_csv(index=False),
                     status=200,
                     mimetype="application/text")
-
-            elif chart_type == 'heatmap':
-                color_perc_lbound = float(
-                    request.args.get('color_perc_lbound', 0))
-                color_perc_rbound = float(
-                    request.args.get('color_perc_rbound', 1))
-                color_scheme = request.args.get('color_scheme', 'blue_red')
-
-                if color_scheme == 'blue_red':
-                    stops = [
-                        [color_perc_lbound, '#00D1C1'],
-                        [
-                            color_perc_lbound +
-                            ((color_perc_rbound - color_perc_lbound)/2),
-                            '#FFFFCC'
-                        ],
-                        [color_perc_rbound, '#FF5A5F']
-                    ]
-                elif color_scheme == 'blue_scale':
-                    stops = [
-                        [color_perc_lbound, '#FFFFFF'],
-                        [color_perc_rbound, '#2222FF']
-                    ]
-                elif color_scheme == 'fire':
-                    diff = float(color_perc_rbound - color_perc_lbound)
-                    stops = [
-                        [color_perc_lbound, '#FFFFFF'],
-                        [color_perc_lbound + 0.33*diff, '#FFFF00'],
-                        [color_perc_lbound + 0.66*diff, '#FF0000'],
-                        [color_perc_rbound, '#000000']
-                    ]
-                else:
-                    stops = [
-                        [color_perc_lbound, '#FFFFFF'],
-                        [
-                            color_perc_lbound +
-                            ((color_perc_rbound - color_perc_lbound)/2),
-                            '#888888'
-                        ],
-                        [color_perc_rbound, '#000000'],
-                    ]
-
-                xaxis_label = df.columns[1]
-                yaxis_label = df.columns[2]
-                data = []
-                for row in df.itertuples():
-                    data.append({
-                        'x': row[2],
-                        'y': row[3],
-                        'value': row[4],
-                    })
-                x_format = '{point.x:%Y-%m-%d}' \
-                    if chart.x_is_date else '{point.x}'
-                series.append({
-                    'data': data,
-                    'borderWidth': 0,
-                    'colsize': 24 * 36e5,
-                    'turboThreshold': sys.float_info.max,
-                    'tooltip': {
-                        'headerFormat': '',
-                        'pointFormat': (
-                            df.columns[1] + ': ' + x_format + '<br/>' +
-                            df.columns[2] + ': {point.y}<br/>' +
-                            df.columns[3] + ': <b>{point.value}</b>'
-                        ),
-                    },
-                })
-                colorAxis = {
-                    'stops': stops,
-                    'minColor': '#FFFFFF',
-                    'maxColor': '#000000',
-                    'min': 50,
-                    'max': 2200,
-                }
             else:
                 if chart.sql_layout == 'series':
                     # User provides columns (series, x, y)
@@ -642,7 +568,7 @@ class Airflow(BaseView):
                 HtmlFormatter(noclasses=True))
             )
         return self.render(
-            'airflow/highchart.html',
+            'airflow/sql_charts.html',
             chart=chart,
             title="Airflow - Chart",
             sql=sql,
