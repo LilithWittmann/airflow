@@ -452,16 +452,6 @@ class Airflow(BaseView):
                         payload, indent=4, cls=utils.AirflowJsonEncoder),
                     status=200,
                     mimetype="application/json")
-
-            elif chart_type == 'para':
-                df.rename(columns={
-                    df.columns[0]: 'name',
-                    df.columns[1]: 'group',
-                }, inplace=True)
-                return Response(
-                    response=df.to_csv(index=False),
-                    status=200,
-                    mimetype="application/text")
             else:
                 if chart.sql_layout == 'series':
                     # User provides columns (series, x, y)
@@ -484,60 +474,32 @@ class Airflow(BaseView):
 
                 for col in df.columns:
                     series.append({
-                        'name': col,
-                        'data': [
+                        'key': col,
+                        'values': [
                             (k, df[col][k])
                             for k in df[col].keys()
                             if not np.isnan(df[col][k])]
                     })
                 series = [serie for serie in sorted(
-                    series, key=lambda s: s['data'][0][1], reverse=True)]
+                    series, key=lambda s: s['values'][0][1], reverse=True)]
 
-            if chart_type == "stacked_area":
-                stacking = "normal"
-                chart_type = 'area'
-            elif chart_type == "percent_area":
-                stacking = "percent"
-                chart_type = 'area'
-            else:
-                stacking = None
-            hc = {
-                'chart': {
-                    'type': chart_type
+
+
+
+            payload["chart"] = {}
+            payload["chart"]["series"] = series
+
+            payload["chart"]["settings"] = {
+                "labels": {
+                    "xaxis": xaxis_label,
+                    "yaxis": yaxis_label
                 },
-                'plotOptions': {
-                    'series': {
-                        'marker': {
-                            'enabled': False
-                        }
-                    },
-                    'area': {'stacking': stacking},
-                },
-                'title': {'text': ''},
-                'xAxis': {
-                    'title': {'text': xaxis_label},
-                    'type': 'datetime' if chart.x_is_date else None,
-                },
-                'yAxis': {
-                    'title': {'text': yaxis_label},
-                },
-                'colorAxis': colorAxis,
-                'tooltip': {
-                    'useHTML': True,
-                    'backgroundColor': None,
-                    'borderWidth': 0,
-                },
-                'series': series,
+                "x_is_date": chart.x_is_date,
+                "type": chart_type,
+                "y_log_scale": chart.y_log_scale,
             }
 
-            if chart.y_log_scale:
-                hc['yAxis']['type'] = 'logarithmic'
-                hc['yAxis']['minorTickInterval'] = 0.1
-                if 'min' in hc['yAxis']:
-                    del hc['yAxis']['min']
-
             payload['state'] = 'SUCCESS'
-            payload['hc'] = hc
             payload['data'] = data
             payload['request_dict'] = request_dict
 
@@ -1818,14 +1780,9 @@ class ChartModelView(wwwutils.DataProfilingMixin, AirflowModelView):
     form_choices = {
         'chart_type': [
             ('line', 'Line Chart'),
-            ('spline', 'Spline Chart'),
             ('bar', 'Bar Chart'),
-            ('para', 'Parallel Coordinates'),
             ('column', 'Column Chart'),
-            ('area', 'Overlapping Area Chart'),
             ('stacked_area', 'Stacked Area Chart'),
-            ('percent_area', 'Percent Area Chart'),
-            ('heatmap', 'Heatmap'),
             ('datatable', 'No chart, data table only'),
         ],
         'sql_layout': [
